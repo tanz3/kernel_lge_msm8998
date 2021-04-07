@@ -1124,7 +1124,7 @@ out:
 	return rc;
 }
 
-static int
+int
 ecryptfs_get_auth_tok_sig(char **sig, struct ecryptfs_auth_tok *auth_tok)
 {
 	int rc = 0;
@@ -1885,7 +1885,7 @@ int ecryptfs_parse_packet_set(struct ecryptfs_crypt_stat *crypt_stat,
 		}
 	}
 	if (list_empty(&auth_tok_list)) {
-		printk(KERN_ERR "The lower file appears to be a non-encrypted "
+		ecryptfs_printk(KERN_ERR, "The lower file appears to be a non-encrypted "
 		       "eCryptfs file; this is not supported in this version "
 		       "of the eCryptfs kernel module\n");
 		rc = -EINVAL;
@@ -1934,7 +1934,7 @@ found_matching_auth_tok:
 	if (candidate_auth_tok->token_type == ECRYPTFS_PRIVATE_KEY) {
 		memcpy(&(candidate_auth_tok->token.private_key),
 		       &(matching_auth_tok->token.private_key),
-		       sizeof(struct ecryptfs_private_key));
+		       sizeof(struct ecryptfs_private_key) + matching_auth_tok->token.private_key.data_len);
 		up_write(&(auth_tok_key->sem));
 		key_put(auth_tok_key);
 		rc = decrypt_pki_encrypted_session_key(candidate_auth_tok,
@@ -1952,6 +1952,7 @@ found_matching_auth_tok:
 		key_put(auth_tok_key);
 		rc = -EINVAL;
 	}
+
 	if (rc) {
 		struct ecryptfs_auth_tok_list_item *auth_tok_list_item_tmp;
 

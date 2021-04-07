@@ -1259,13 +1259,15 @@ static inline int ext4_match(struct ext4_filename *fname,
 	return (memcmp(de->name, name, len) == 0) ? 1 : 0;
 }
 
+
 /*
  * Returns 0 if not found, -1 on failure, and 1 on success
  */
 int ext4_search_dir(struct buffer_head *bh, char *search_buf, int buf_size,
 		    struct inode *dir, struct ext4_filename *fname,
 		    const struct qstr *d_name,
-		    unsigned int offset, struct ext4_dir_entry_2 **res_dir)
+		    unsigned int offset,
+			struct ext4_dir_entry_2 **res_dir)
 {
 	struct ext4_dir_entry_2 * de;
 	char * dlimit;
@@ -1277,6 +1279,7 @@ int ext4_search_dir(struct buffer_head *bh, char *search_buf, int buf_size,
 	while ((char *) de < dlimit) {
 		/* this code is executed quadratically often */
 		/* do minimal checking `by hand' */
+
 		if ((char *) de + de->name_len <= dlimit) {
 			res = ext4_match(fname, de);
 			if (res < 0) {
@@ -1469,7 +1472,8 @@ restart:
 		}
 		set_buffer_verified(bh);
 		i = search_dirblock(bh, dir, &fname, d_name,
-			    block << EXT4_BLOCK_SIZE_BITS(sb), res_dir);
+			    block << EXT4_BLOCK_SIZE_BITS(sb),
+				res_dir);
 		if (i == 1) {
 			EXT4_I(dir)->i_dir_start_lookup = block;
 			ret = bh;
@@ -1562,7 +1566,6 @@ static struct dentry *ext4_lookup(struct inode *dir, struct dentry *dentry, unsi
 	struct inode *inode;
 	struct ext4_dir_entry_2 *de;
 	struct buffer_head *bh;
-
        if (ext4_encrypted_inode(dir)) {
                int res = ext4_get_encryption_info(dir);
 
@@ -1585,6 +1588,7 @@ static struct dentry *ext4_lookup(struct inode *dir, struct dentry *dentry, unsi
 		return ERR_PTR(-ENAMETOOLONG);
 
 	bh = ext4_find_entry(dir, &dentry->d_name, &de, NULL);
+
 	if (IS_ERR(bh))
 		return (struct dentry *) bh;
 	inode = NULL;
@@ -1620,6 +1624,7 @@ static struct dentry *ext4_lookup(struct inode *dir, struct dentry *dentry, unsi
 			return ERR_PTR(-EPERM);
 		}
 	}
+
 	return d_splice_alias(inode, dentry);
 }
 
@@ -1632,6 +1637,7 @@ struct dentry *ext4_get_parent(struct dentry *child)
 	struct buffer_head *bh;
 
 	bh = ext4_find_entry(d_inode(child), &dotdot, &de, NULL);
+
 	if (IS_ERR(bh))
 		return (struct dentry *) bh;
 	if (!bh)
@@ -2942,7 +2948,9 @@ static int ext4_rmdir(struct inode *dir, struct dentry *dentry)
 		return retval;
 
 	retval = -ENOENT;
+
 	bh = ext4_find_entry(dir, &dentry->d_name, &de, NULL);
+
 	if (IS_ERR(bh))
 		return PTR_ERR(bh);
 	if (!bh)
@@ -3016,6 +3024,7 @@ static int ext4_unlink(struct inode *dir, struct dentry *dentry)
 		return retval;
 
 	retval = -ENOENT;
+
 	bh = ext4_find_entry(dir, &dentry->d_name, &de, NULL);
 	if (IS_ERR(bh))
 		return PTR_ERR(bh);
@@ -3534,6 +3543,7 @@ static int ext4_rename(struct inode *old_dir, struct dentry *old_dentry,
 	}
 
 	old.bh = ext4_find_entry(old.dir, &old.dentry->d_name, &old.de, NULL);
+
 	if (IS_ERR(old.bh))
 		return PTR_ERR(old.bh);
 	/*
@@ -3742,6 +3752,7 @@ static int ext4_cross_rename(struct inode *old_dir, struct dentry *old_dentry,
 
 	old.bh = ext4_find_entry(old.dir, &old.dentry->d_name,
 				 &old.de, &old.inlined);
+
 	if (IS_ERR(old.bh))
 		return PTR_ERR(old.bh);
 	/*

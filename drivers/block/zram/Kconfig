@@ -14,6 +14,16 @@ config ZRAM
 
 	  See Documentation/blockdev/zram.txt for more information.
 
+config ZRAM_ASYNC_IO
+	bool "support asynchronous IO"
+	depends on ZRAM && SMP
+	default n
+	help
+	  Use background threads to compress IO data to leverage multiple
+	  CPU power so that it can increase write throughput.
+	  To enable the feature, echo 1 > /sys/block/zramX/async before
+	  the setting disksize.
+
 config ZRAM_WRITEBACK
        bool "Write back incompressible page to backing device"
        depends on ZRAM

@@ -3423,6 +3423,10 @@ static int hdmi_tx_power_off(struct hdmi_tx_ctrl *hdmi_ctrl)
 	if (hdmi_ctrl->panel_ops.off)
 		hdmi_ctrl->panel_ops.off(pdata);
 
+	/* reset Max PCLK */
+	hdmi_edid_set_max_pclk_rate(hdmi_tx_get_fd(HDMI_TX_FEAT_EDID),
+			hdmi_ctrl->max_pclk_khz);
+
 	hdmi_tx_set_mode(hdmi_ctrl, false);
 
 	hdmi_tx_set_mode(hdmi_ctrl, true);
@@ -3431,6 +3435,9 @@ static int hdmi_tx_power_off(struct hdmi_tx_ctrl *hdmi_ctrl)
 
 	hdmi_ctrl->panel_power_on = false;
 	hdmi_ctrl->vic = 0;
+
+	hdmi_ctrl->use_bt2020 = false;
+	hdmi_ctrl->curr_hdr_state = HDR_DISABLE;
 
 	if (hdmi_ctrl->hpd_off_pending || hdmi_ctrl->panel_suspend)
 		hdmi_tx_hpd_off(hdmi_ctrl);
@@ -4125,6 +4132,7 @@ sysfs_err:
 static int hdmi_tx_evt_handle_check_param(struct hdmi_tx_ctrl *hdmi_ctrl)
 {
 	struct mdss_panel_info *pinfo = &hdmi_ctrl->panel_data.panel_info;
+	void *data = NULL;
 	int new_vic = -1;
 	int rc = 0;
 
@@ -4135,6 +4143,10 @@ static int hdmi_tx_evt_handle_check_param(struct hdmi_tx_ctrl *hdmi_ctrl)
 		DEV_ERR("%s: invalid or not supported vic\n", __func__);
 		goto end;
 	}
+
+	data = hdmi_tx_get_fd(HDMI_TX_FEAT_EDID);
+	pinfo->physical_width = hdmi_edid_get_phys_width(data);
+	pinfo->physical_height = hdmi_edid_get_phys_height(data);
 
 	/*
 	 * return value of 1 lets mdss know that panel

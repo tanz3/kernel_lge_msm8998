@@ -80,11 +80,24 @@ struct zram_stats {
 	atomic64_t pages_stored;	/* no. of pages currently stored */
 	atomic_long_t max_used_pages;	/* no. of maximum pages stored */
 	atomic64_t writestall;		/* no. of write slow paths */
+#ifdef CONFIG_ZRAM_ASYNC_IO
+    atomic64_t wakeup_total;
+    atomic64_t wakeup_wasted;
+#endif
+};
+
+struct zram;
+
+struct zram_op {
+	int (*rw_page)(struct zram *zram, struct bio_vec *bvec, u32 index,
+			int offset, bool is_write);
+	void (*make_request)(struct zram *zram, struct bio *bio);
 };
 
 struct zram {
 	struct zram_table_entry *table;
 	struct zs_pool *mem_pool;
+	struct zram_op *op;
 	struct zcomp *comp;
 	struct gendisk *disk;
 	/* Prevent concurrent execution of device init */
@@ -116,5 +129,13 @@ struct zram {
 #ifdef CONFIG_ZRAM_MEMORY_TRACKING
 	struct dentry *debugfs_dir;
 #endif
+#ifdef CONFIG_ZRAM_ASYNC_IO
+    bool async;
+    int max_write_threads;
+#endif
 };
+
+#ifdef CONFIG_HSWAP
+extern int zram0_free_size(void);
+#endif
 #endif

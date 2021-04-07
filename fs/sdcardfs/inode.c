@@ -181,6 +181,42 @@ out_eacces:
 	return err;
 }
 
+#ifdef CONFIG_MACH_LGE
+static int sdcardfs_symlink(struct inode *dir, struct dentry *dentry,
+			  const char *symname)
+{
+	int err;
+	struct dentry *lower_dentry;
+	struct dentry *lower_parent_dentry = NULL;
+	struct path lower_path;
+	const struct cred *saved_cred = NULL;
+
+    saved_cred = override_fsids(SDCARDFS_SB(dir->i_sb),
+            SDCARDFS_I(dir)->data);
+    if (!saved_cred)
+        return -ENOMEM;
+
+	sdcardfs_get_lower_path(dentry, &lower_path);
+	lower_dentry = lower_path.dentry;
+	lower_parent_dentry = lock_parent(lower_dentry);
+
+	err = vfs_symlink(d_inode(lower_parent_dentry), lower_dentry, symname);
+	if (err)
+		goto out;
+	err = sdcardfs_interpose(dentry, dir->i_sb, &lower_path, SDCARDFS_I(dir)->data->userid);
+	if (err)
+		goto out;
+	fsstack_copy_attr_times(dir, sdcardfs_lower_inode(dir));
+	fsstack_copy_inode_size(dir, d_inode(lower_parent_dentry));
+
+out:
+	unlock_dir(lower_parent_dentry);
+	sdcardfs_put_lower_path(dentry, &lower_path);
+    revert_fsids(saved_cred);
+	return err;
+}
+#endif
+
 static int touch(char *abs_path, mode_t mode)
 {
 	struct file *filp = filp_open(abs_path, O_RDWR|O_CREAT|O_EXCL|O_NOFOLLOW, mode);
@@ -466,7 +502,7 @@ out_eacces:
 	return err;
 }
 
-#if 0
+#ifdef CONFIG_MACH_LGE
 static int sdcardfs_readlink(struct dentry *dentry, char __user *buf, int bufsiz)
 {
 	int err;
@@ -494,7 +530,7 @@ out:
 }
 #endif
 
-#if 0
+#ifdef CONFIG_MACH_LGE
 static const char *sdcardfs_follow_link(struct dentry *dentry, void **cookie)
 {
 	char *buf;
@@ -770,6 +806,8 @@ static int sdcardfs_getattr(struct vfsmount *mnt, struct dentry *dentry,
 		goto out;
 	sdcardfs_copy_and_fix_attrs(d_inode(dentry),
 			      d_inode(lower_path.dentry));
+	fsstack_copy_inode_size(d_inode(dentry),
+			d_inode(lower_path.dentry));
 	err = sdcardfs_fillattr(mnt, d_inode(dentry), &lower_stat, stat);
 out:
 	sdcardfs_put_lower_path(dentry, &lower_path);
@@ -779,6 +817,11 @@ out:
 const struct inode_operations sdcardfs_symlink_iops = {
 	.permission2	= sdcardfs_permission,
 	.setattr2	= sdcardfs_setattr,
+#ifdef CONFIG_MACH_LGE
+	.readlink	= sdcardfs_readlink,
+	.follow_link	= sdcardfs_follow_link,
+	.put_link	= kfree_put_link,
+#else
 	/* XXX Following operations are implemented,
 	 *     but FUSE(sdcard) or FAT does not support them
 	 *     These methods are *NOT* perfectly tested.
@@ -786,6 +829,7 @@ const struct inode_operations sdcardfs_symlink_iops = {
 	.follow_link	= sdcardfs_follow_link,
 	.put_link	= kfree_put_link,
 	 */
+#endif
 };
 
 const struct inode_operations sdcardfs_dir_iops = {
@@ -800,6 +844,10 @@ const struct inode_operations sdcardfs_dir_iops = {
 	.setattr	= sdcardfs_setattr_wrn,
 	.setattr2	= sdcardfs_setattr,
 	.getattr	= sdcardfs_getattr,
+#ifdef CONFIG_MACH_LGE
+	.symlink	= sdcardfs_symlink,
+#else
+#endif
 };
 
 const struct inode_operations sdcardfs_main_iops = {

@@ -23,6 +23,7 @@
 
 #define MSM_VDEC_DVC_NAME "msm_vdec_8974"
 #define MIN_NUM_OUTPUT_BUFFERS 4
+#define MIN_NUM_OUTPUT_BUFFERS_VP9 6
 #define MIN_NUM_OUTPUT_BUFFERS_HEVC 5
 #define MIN_NUM_CAPTURE_BUFFERS 6
 #define MIN_NUM_THUMBNAIL_MODE_CAPTURE_BUFFERS 1
@@ -1482,6 +1483,16 @@ static int msm_vdec_queue_setup(struct vb2_queue *q,
 		if (*num_buffers < MIN_NUM_OUTPUT_BUFFERS ||
 				*num_buffers > MAX_NUM_OUTPUT_BUFFERS)
 			*num_buffers = MIN_NUM_OUTPUT_BUFFERS;
+		/*
+		 * Increase input buffer count to 6 as for some
+		 * vp9 clips which have superframes with more
+		 * than 4 subframes requires more than 4
+		 * reference frames to decode.
+		 */
+		if (inst->fmts[OUTPUT_PORT].fourcc ==
+				V4L2_PIX_FMT_VP9 &&
+				*num_buffers < MIN_NUM_OUTPUT_BUFFERS_VP9)
+			*num_buffers = MIN_NUM_OUTPUT_BUFFERS_VP9;
 
 		if (inst->fmts[OUTPUT_PORT].fourcc ==
 				V4L2_PIX_FMT_HEVC &&
@@ -1687,6 +1698,11 @@ static int set_max_internal_buffers_size(struct msm_vidc_inst *inst)
 			internal_buffers[i].req->buffer_size : 0;
 		if (internal_buffers[i].req == NULL)
 			continue;
+
+        //[S][QCOM][CASE#03087947][CR#2094156] allocate max internal buffers bug fix
+        if (internal_buffers[i].req == NULL)
+            continue;
+        //[E][QCOM][CASE#03087947][CR#2094156] allocate max internal buffers bug fix
 
 		rc = allocate_and_set_internal_bufs(inst,
 					internal_buffers[i].req,

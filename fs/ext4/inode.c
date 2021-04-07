@@ -1016,7 +1016,7 @@ static int ext4_block_write_begin(struct page *page, loff_t pos, unsigned len,
 			*wait_bh++ = bh;
 			decrypt = ext4_encrypted_inode(inode) &&
 				S_ISREG(inode->i_mode) &&
-				!ext4_is_ice_enabled();
+				!ext4_using_hardware_encryption(inode);
 		}
 	}
 	/*
@@ -3657,9 +3657,11 @@ static int ext4_block_truncate_page(handle_t *handle,
 	unsigned blocksize;
 	struct inode *inode = mapping->host;
 
-	/* If we are processing an encrypted inode during orphan list handling */
+	/* If we are processing an encrypted inode during orphan list
+	 * handling */
 	if (ext4_encrypted_inode(inode) && !ext4_has_encryption_key(inode))
 		return 0;
+	
 
 	blocksize = inode->i_sb->s_blocksize;
 	length = blocksize - (offset & (blocksize - 1));

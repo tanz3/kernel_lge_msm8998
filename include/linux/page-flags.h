@@ -79,6 +79,7 @@ enum pageflags {
 	PG_dirty,
 	PG_lru,
 	PG_active,
+	PG_workingset,
 	PG_slab,
 	PG_owner_priv_1,	/* Owner use. If pagecache, fs may use*/
 	PG_arch_1,
@@ -110,6 +111,9 @@ enum pageflags {
 #endif
 #ifdef CONFIG_ZCACHE
 	PG_was_active,
+#endif
+#ifdef CONFIG_ZRAM_ASYNC_IO
+	PG_async_wb,
 #endif
 	__NR_PAGEFLAGS,
 
@@ -271,6 +275,7 @@ PAGEFLAG(Dirty, dirty, PF_ANY) TESTSCFLAG(Dirty, dirty, PF_ANY)
 PAGEFLAG(LRU, lru, PF_ANY) __CLEARPAGEFLAG(LRU, lru, PF_ANY)
 PAGEFLAG(Active, active, PF_ANY) __CLEARPAGEFLAG(Active, active, PF_ANY)
 	TESTCLEARFLAG(Active, active, PF_ANY)
+PAGEFLAG(Workingset, workingset, PF_ANY)
 __PAGEFLAG(Slab, slab, PF_ANY)
 PAGEFLAG(Checked, checked, PF_ANY)		/* Used by some filesystems */
 PAGEFLAG(Pinned, pinned, PF_ANY) TESTSCFLAG(Pinned, pinned, PF_ANY)	/* Xen */
@@ -318,6 +323,9 @@ PAGEFLAG(Readahead, reclaim, PF_ANY) TESTCLEARFLAG(Readahead, reclaim, PF_ANY)
 #define PageHighMem(__p) is_highmem_idx(page_zonenum(__p))
 #else
 PAGEFLAG_FALSE(HighMem)
+#endif
+#ifdef CONFIG_ZRAM_ASYNC_IO
+PAGEFLAG(AsyncWriteback, async_wb, PF_ANY) TESTCLEARFLAG(AsyncWriteback, async_wb, PF_ANY)
 #endif
 
 #ifdef CONFIG_SWAP
@@ -389,13 +397,13 @@ static __always_inline int PageMappingFlags(struct page *page)
 
 static inline int PageAnon(struct page *page)
 {
-	return ((unsigned long)page->mapping & PAGE_MAPPING_ANON) != 0;
+   return ((unsigned long)page->mapping & PAGE_MAPPING_ANON) != 0;
 }
 
 static __always_inline int __PageMovable(struct page *page)
 {
-	return ((unsigned long)page->mapping & PAGE_MAPPING_FLAGS) ==
-				PAGE_MAPPING_MOVABLE;
+   return ((unsigned long)page->mapping & PAGE_MAPPING_FLAGS) ==
+               PAGE_MAPPING_MOVABLE;
 }
 
 #ifdef CONFIG_KSM
