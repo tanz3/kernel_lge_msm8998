@@ -2626,6 +2626,16 @@ static int tavil_codec_hphl_dac_event(struct snd_soc_dapm_widget *w,
 					    WCD934X_HPH_NEW_INT_RDAC_GAIN_CTL,
 					    0xF0, 0x0);
 
+#ifdef CONFIG_MACH_LGE
+		ret = tavil_mbhc_get_impedance(tavil->mbhc,
+					       &impedl, &impedr);
+		if (ret) {
+			dev_dbg(codec->dev, "%s: Failed to get mbhc impedance %d\n",
+				__func__, ret);
+			ret = 0;
+			impedl = impedr = 0;
+		}
+#endif
 		if (test_bit(CLSH_Z_CONFIG, &tavil->status_mask)) {
 			wcd_clsh_imped_config(codec, impedl, true);
 			clear_bit(CLSH_Z_CONFIG, &tavil->status_mask);

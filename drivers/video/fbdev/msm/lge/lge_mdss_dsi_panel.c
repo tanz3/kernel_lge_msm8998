@@ -224,7 +224,7 @@ static int lge_mdss_panel_parse_mplus_dt(struct device_node *np,
 	if (rc > 0) {
 		ctrl_pdata->lge_extra.mp_to_blmap_tbl_size = rc;
 		pr_info("mp_to_blmap_tbl_size=%d\n", ctrl_pdata->lge_extra.mp_to_blmap_tbl_size);
-		ctrl_pdata->lge_extra.mp_to_blmap_tbl = kzalloc(sizeof(int) * ctrl_pdata->lge_extra.blmap_list_size, GFP_KERNEL);
+		ctrl_pdata->lge_extra.mp_to_blmap_tbl = kzalloc(sizeof(int) * ctrl_pdata->lge_extra.mp_to_blmap_tbl_size, GFP_KERNEL);
 		if (NULL == ctrl_pdata->lge_extra.mp_to_blmap_tbl) {
 			pr_err("allocation failed\n");
 			ctrl_pdata->lge_extra.use_mplus = false;
